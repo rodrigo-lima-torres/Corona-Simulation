@@ -1,3 +1,7 @@
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load("tidyverse", "MASS", "plyr","data.table", "gganimate", "Rfast")
+
+
 atualizar.direcao <- function(dados) {
   # Definindo a direção e a nova posição dos que estão em casa
   ind.casa <- which(dados$casa==T)
@@ -28,7 +32,20 @@ atualizar.direcao <- function(dados) {
   # Calcula o angulo (em radianos) entre a posição atual e o centro da cidade
   angulo.aux <- atan2(casas$lat[aux.fora.parado] - dados$lat[aux.fora.parado], 
                       casas$long[aux.fora.parado] - dados$long[aux.fora.parado])
-  dados$direc[aux.fora.parado] <- angulo.aux # Levando os individuoas de volta pra casa
+  dados$direc[aux.fora.parado] <- angulo.aux
+  
+  moveram <- c(ind.sair, setdiff(ind.fora.move, aux.fora.move), aux.fora.parado)
+  moveram.saudaveis <- intersect(moveram, dados[dados$status==0, "ind"])
+  i<-1
+  aux <- (0:(n.grid-1))*n.grid
+  for(ind in moveram.saudaveis) {
+    indices.lat.grid <- which.min(abs(dados[ind, "lat"] - grid.lat))
+    indices.lat <- aux + indices.lat.grid
+    indice.long <- which.min(abs(dados[ind, "long"] - superficie[indices.lat, 2]))
+    linha.grid[ind] <<- indices.lat[indice.long]
+    i <- i+1
+  }
+  
   return(dados$direc)
 }
 
@@ -38,8 +55,7 @@ atualizar.posicao <- function(dados) {
   delta <- tamanho.passo * cbind(sin(dados$direc), 
                                  cos(dados$direc))
   delta[dados$direc==0, ] <- 0  # casos em que a direção é nula não devem se mover 
-  dados[, c("lat", "long")] <- dados[, c("lat", "long")] + delta
-  return(dados[, c("lat", "long")])
+  return(dados[, c("lat", "long")] + delta)
 }
 
 
@@ -59,33 +75,27 @@ atualizar.risco <- function(dados) {
     filter(status==1)
   aux <- kde2d(tmp$long, tmp$lat, h=rep(raio.risco, 2), n=n.grid, 
                lims=c(range(long.extremos), range(lat.extremos)))
-  superficie[, 2+tempo] <- superficie[, 3+tempo-2]*taxa.decaimento + 
-    log(pmax(1, as.vector(t(aux$z))))
-  return(superficie[, 2+tempo])
+  risco <- superficie[, tempo+1]*taxa.decaimento + as.vector(aux$z)
+  return(risco)
 }
 
 
 atualizar.status <- function(dados) {
   ### Atualizar a coluna status
   # Simulando infecções
-  saudaveis <- dados$ind[dados$status==0]
-  for(ind in saudaveis) {
-    indice.lat <- which.min(abs(dados$lat[ind] - grid.lat))
-    lat.mais.proxima <- unique(grid.lat[indice.lat])
-    indices <- superficie[, 1] == lat.mais.proxima  # o tempo para essa operação é um desastre!
-    # Para melhorar, é possível criar previamente uma matriz com os indices para cada latitude
-    indice.long <- which.min(abs(dados$long[ind] - superficie[indices, 2]))
-    risco <- superficie[indice.long, tempo+2]  # Nível de contaminação do ambiente
-    p.infec <- 2*((1/(1+exp(-escala.risco*risco)))-.5)  # Probabilidade de infecção
-    dados$status[ind] <- sample(1:0, 1, prob=c(p.infec, 1-p.infec))
-  }
+  risco <- superficie[, tempo+2]  # Nível de contaminação do ambiente
+  p.infec <- 2*((1/(1+exp(-escala.risco*risco)))-.5)  # Probabilidade de infecção
   
+  saudaveis <- dados[dados$status==0, "ind"]
+  infectados <- as.integer((runif(length(saudaveis)) < p.infec[linha.grid[saudaveis]]))
+  dados$status[saudaveis][infectados] <- 1L
+
   # Simulando recuperações
   contaminados <- setdiff(1:n.pop, saudaveis)
   aux <- sample(c(T, F), length(contaminados), 
                     prob=c(p.recuperar, 1-p.recuperar),
                     replace=T)
   recuperados <- contaminados[aux]
-  dados$status[recuperados] <- 2
+  dados$status[recuperados] <- 2L
   return(dados$status)
 }
