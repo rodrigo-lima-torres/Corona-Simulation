@@ -1,0 +1,78 @@
+mainDir <- "D:/software/R/Test/"
+setwd(mainDir)
+
+library(tidyverse)
+library(data.table)
+library(stringr)
+library(gganimate)
+
+# This function creates a grid of vectors (coordinates and angle)
+# using a initial vector of angles adding factor f each iteration
+
+n_points <- 10
+
+create_grid <- function(n, a, f) {
+	lapply(seq_len(n), function (x) {a+f*(x-1)}) %>%
+	do.call("rbind", .) %>%
+	melt(varnames=c('x', 'y'), value.name="angle")
+}
+
+# Primer patron (circulos)
+closeness <- 2*pi/n_points
+speed <- 2*pi/n_points
+v_angles <- seq(0, 2*pi, length.out = n_points)
+
+# This is what makes to spin the pins
+lapply(1:(n_points+1), function(x) { create_grid(n_points, v_angles+(x-1)*speed, closeness)}) %>% as.list(.) %>% rbindlist(idcol="frame") -> df
+
+# Plot pins using frame as transition time
+move.grid <- function(df) {
+		ggplot(df) + geom_spoke(aes(x=x, y=y, angle = angle), radius = 1) +	geom_point(aes(x+cos(angle), y+sin(angle)), size=4) + theme_void() + coord_fixed() + transition_time(time=frame)
+}
+
+anim_save(str_replace_all(paste("gif/circulitosP1-", toString(n_points), "p.gif"), fixed(" "), ""), move.grid(df))
+
+# Segundo patron
+closeness <- 0
+speed <- 2*pi/n_points
+v_angles <- seq(0, by=pi/2, length.out = n_points)
+
+# This is what makes to spin the pins
+lapply(1:(n_points+1), function(x) { create_grid(n_points, v_angles+(x-1)*speed, closeness)}) %>% as.list(.) %>% rbindlist(idcol="frame") -> df
+
+# Plot pins using frame as transition time
+move.grid <- function(df) {
+		ggplot(df) + geom_spoke(aes(x=x, y=y, angle = angle), radius = 1) +	geom_point(aes(x+cos(angle), y+sin(angle)), size=4) + theme_void() + coord_fixed() + transition_time(time=frame)
+}
+
+anim_save(str_replace_all(paste("gif/circulitosP2-", toString(n_points), "p.gif"), fixed(" "), ""), move.grid(df))
+
+# Tercer patron
+closeness <- 2*pi/n_points
+speed <- 2*pi/n_points
+v_angles <- seq(0, 0, length.out = n_points)
+
+# This is what makes to spin the pins
+lapply(1:(n_points+1), function(x) { create_grid(n_points, v_angles+(x-1)*speed, closeness)}) %>% as.list(.) %>% rbindlist(idcol="frame") -> df
+
+# Plot pins using frame as transition time
+move.grid <- function(df) {
+		ggplot(df) + geom_spoke(aes(x=x, y=y, angle = angle), radius = 1) +	geom_point(aes(x+cos(angle), y+sin(angle)), size=4) + theme_void() + coord_fixed() + transition_time(time=frame)
+}
+
+anim_save(str_replace_all(paste("gif/circulitosP3-", toString(n_points), "p.gif"), fixed(" "), ""), move.grid(df))
+
+# 4th pattern
+closeness <- pi/4
+speed <- 2*pi/n_points
+v_angles <- seq(0, by=pi/4, length.out = n_points)
+
+# This is what makes to spin the pins
+lapply(1:(n_points+1), function(x) { create_grid(n_points, v_angles+(x-1)*speed, closeness)}) %>% as.list(.) %>% rbindlist(idcol="frame") -> df
+
+# Plot pins using frame as transition time
+move.grid <- function(df) {
+		ggplot(df) + geom_spoke(aes(x=x, y=y, angle = angle), radius = 1) +	geom_point(aes(x+cos(angle), y+sin(angle)), size=4) + theme_void() + coord_fixed() + transition_time(time=frame)
+}
+
+anim_save(str_replace_all(paste("gif/circulitosP4-", toString(n_points), "p.gif"), fixed(" "), ""), move.grid(df))
