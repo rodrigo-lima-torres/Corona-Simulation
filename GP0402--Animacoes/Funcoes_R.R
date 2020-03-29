@@ -1,5 +1,5 @@
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load("tidyverse", "MASS", "plyr","data.table", "gganimate", "Rfast")
+pacman::p_load("tidyverse", "MASS", "plyr","data.table", "gganimate", "Rfast", "gifski", "ggplot2", "grid", "png", "maps")
 
 
 atualizar.direcao <- function(dados) {
